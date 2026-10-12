@@ -155,8 +155,63 @@ const conf = convict({
   },
   max_file_size: {
     format: Number,
-    default: 1024 * 1024 * 1024 * 2.5,
+    default: 300 * 1024 * 1024 * 1024, // 300 GiB (large mode upper bound)
     env: 'MAX_FILE_SIZE'
+  },
+  large_file_threshold: {
+    format: Number,
+    default: 10 * 1024 * 1024 * 1024, // 10 GiB (normal mode upper bound)
+    env: 'BUICHA_LARGE_FILE_THRESHOLD'
+  },
+  large_expire_seconds: {
+    format: Number,
+    default: 86400,
+    env: 'BUICHA_LARGE_EXPIRE_SECONDS'
+  },
+  storage_quota_bytes: {
+    format: Number,
+    default: 2000000000000,
+    env: 'BUICHA_STORAGE_QUOTA_BYTES'
+  },
+  sweep_interval_seconds: {
+    format: Number,
+    default: 600,
+    env: 'BUICHA_SWEEP_INTERVAL_SECONDS'
+  },
+  sweep_orphan_min_age_seconds: {
+    format: Number,
+    default: 691200, // 8 days
+    env: 'BUICHA_SWEEP_ORPHAN_MIN_AGE_SECONDS'
+  },
+  sweep_orphan_max_per_run: {
+    format: Number,
+    default: 50, // more candidates than this in one sweep => delete none
+    env: 'BUICHA_SWEEP_ORPHAN_MAX_PER_RUN'
+  },
+  sweep_orphan_dry_run: {
+    format: Boolean,
+    default: false,
+    env: 'BUICHA_SWEEP_ORPHAN_DRY_RUN'
+  },
+  reconcile_interval_seconds: {
+    format: Number,
+    default: 21600, // 6 hours
+    env: 'BUICHA_RECONCILE_INTERVAL_SECONDS'
+  },
+  upload_idle_timeout_seconds: {
+    format: Number,
+    default: 60,
+    env: 'BUICHA_UPLOAD_IDLE_TIMEOUT_SECONDS'
+  },
+  upload_min_bytes_per_window: {
+    format: Number,
+    default: 1048576, // 1 MiB per idle window
+    env: 'BUICHA_UPLOAD_MIN_BYTES_PER_WINDOW'
+  },
+  max_concurrent_large_uploads: {
+    format: Number,
+    default: 3,
+    env: 'BUICHA_MAX_CONCURRENT_LARGE_UPLOADS'
   },
   l10n_dev: {
     format: Boolean,
@@ -251,7 +306,7 @@ const conf = convict({
   },
   footer_source_url: {
     format: String,
-    default: 'https://github.com/timvisee/send',
+    default: 'https://github.com/kazunamine/sendbuichajp',
     env: 'SEND_FOOTER_SOURCE_URL'
   },
   custom_footer_text: {

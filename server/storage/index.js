@@ -3,6 +3,11 @@ const Metadata = require('../metadata');
 const mozlog = require('../log');
 const createRedisClient = require('./redis');
 
+// Usage tracking (see usage.js). These keys carry no TTL on purpose:
+// sweeper.js removes them together with the stored object.
+const TRACK_ZSET = 'buicha:files'; // member=id, score=expiresAt (ms)
+const TRACK_HASH_PREFIX = 'buicha:file:'; // hash: size,prefix,createdAt,large,reserved
+
 function getPrefix(seconds) {
   return Math.max(Math.floor(seconds / 86400), 1);
 }
@@ -47,6 +52,27 @@ class DB {
     return this.storage.getStream(filePath);
   }
 
+  get trackKeys() {
+    return { zset: TRACK_ZSET, hashPrefix: TRACK_HASH_PREFIX };
+  }
+
+  // entry: {size, prefix, createdAt, large, reserved}; expiresAt in ms
+  async track(id, entry, expiresAt) {
+    await this.redis.hmsetAsync(`${TRACK_HASH_PREFIX}${id}`, {
+      size: String(entry.size),
+      prefix: String(entry.prefix),
+      createdAt: String(entry.createdAt),
+      large: entry.large ? '1' : '0',
+      reserved: entry.reserved ? '1' : '0'
+    });
+    await this.redis.zaddAsync(TRACK_ZSET, expiresAt, id);
+  }
+
+  async untrack(id) {
+    await this.redis.zremAsync(TRACK_ZSET, id);
+    await this.redis.delAsync(`${TRACK_HASH_PREFIX}${id}`);
+  }
+
   async set(id, file, meta, expireSeconds = config.default_expire_seconds) {
     const prefix = getPrefix(expireSeconds);
     const filePath = `${prefix}-${id}`;
@@ -68,8 +94,23 @@ class DB {
 
   async del(id) {
     const filePath = await this.getPrefixedId(id);
-    this.storage.del(filePath);
+    let delError = null;
+    try {
+      await this.storage.del(filePath);
+    } catch (e) {
+      delError = e;
+    }
     this.redis.del(id);
+    if (delError) {
+      // keep the tracking entry: the sweeper removes the leftover object
+      this.log && this.log.error('storage.del', delError);
+      throw delError;
+    }
+    try {
+      await this.untrack(id);
+    } catch (e) {
+      this.log && this.log.error('untrack', e);
+    }
   }
 
   async ping() {

@@ -2,7 +2,11 @@ const config = require('./config');
 
 module.exports = {
   LIMITS: {
-    MAX_FILE_SIZE: config.max_file_size,
+    // normal mode limit; the client learns about large mode via /api/capacity
+    MAX_FILE_SIZE: config.large_file_threshold,
+    LARGE_FILE_THRESHOLD: config.large_file_threshold,
+    LARGE_MAX_FILE_SIZE: config.max_file_size,
+    LARGE_EXPIRE_SECONDS: config.large_expire_seconds,
     MAX_DOWNLOADS: config.max_downloads,
     MAX_EXPIRE_SECONDS: config.max_expire_seconds,
     MAX_FILES_PER_ARCHIVE: config.max_files_per_archive,

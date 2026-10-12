@@ -1,172 +1,113 @@
-# [![Send](./assets/icon-64x64.png)](https://gitlab.com/timvisee/send/) Send
+# ぶいちゃ便！ (sendbuichajp)
 
-[![Build status on GitLab CI][gitlab-ci-master-badge]][gitlab-ci-link]
-[![Latest release][release-badge]][release-link]
-[![Docker image][docker-image-badge]][docker-image-link]
-[![Project license][repo-license-badge]](LICENSE)
+ぶいちゃ便！ (send.buicha.jp) は [timvisee/send](https://github.com/timvisee/send) を改変したものです。
+ライセンスは MPL-2.0 です（[LICENSE](LICENSE) / [NOTICE.md](NOTICE.md)）。
 
-[docker-image-badge]: https://img.shields.io/badge/docker-latest-blue.svg
-[docker-image-link]: https://gitlab.com/timvisee/send/container_registry/eyJuYW1lIjoidGltdmlzZWUvc2VuZCIsInRhZ3NfcGF0aCI6Ii90aW12aXNlZS9zZW5kL3JlZ2lzdHJ5L3JlcG9zaXRvcnkvMTQxODUwNC90YWdzP2Zvcm1hdD1qc29uIiwiaWQiOjE0MTg1MDQsImNsZWFudXBfcG9saWN5X3N0YXJ0ZWRfYXQiOm51bGx9
-[gitlab-ci-link]: https://gitlab.com/timvisee/send/pipelines
-[gitlab-ci-master-badge]: https://gitlab.com/timvisee/send/badges/master/pipeline.svg
-[release-badge]: https://img.shields.io/github/v/tag/timvisee/send
-[release-link]: https://gitlab.com/timvisee/send/-/tags
-[repo-license-badge]: https://img.shields.io/github/license/timvisee/send.svg
+上流は Mozilla の Firefox Send をコミュニティが維持しているフォークで、エンドツーエンド暗号化でファイルを共有できます。
 
-A fork of Mozilla's [Firefox Send][mozilla-send].
-Mozilla discontinued Send, this fork is a community effort to keep the project
-up-to-date and alive.
+## 主な変更点
 
-- Forked [at][fork-commit] Mozilla's last publicly hosted version
-- _Mozilla_ & _Firefox_ branding [is][remove-branding-pr] removed so you can legally self-host
-- Kept compatible with [`ffsend`][ffsend] (CLI for Send)
-- Dependencies have been updated
-- Mozilla's [changes][mozilla-patches] since the fork have been selectively [merged][mozilla-patches-pr]
-- Mozilla's experimental report feature, download tokens, trust warnings and FxA changes are not included
+- デザイン刷新・日本語化
+- 大容量モード: 10 GiB 超〜300 GiB のファイルを送信可能（有効期限は 24 時間固定）
+- 保存容量 2TB の上限と、残容量が足りないときの大容量モード自動停止
+- 期限切れファイルの掃除（S3 実体も削除）
+- LAN 限定の管理画面（パスワード + TOTP + パスキー）
+- 利用規約・プライバシーポリシーページ
 
-Find an up-to-date Docker image here: [docs/docker.md](docs/docker.md)
+## 要件
 
-The original project by Mozilla can be found [here][mozilla-send].
-The [`mozilla-master`][branch-mozilla-master] branch holds the `master` branch
-as left by Mozilla.
-The [`send-v3`][branch-send-v3] branch holds the commit tree of Mozilla's last
-publicly hosted version, which this fork is based on.
-The [`send-v4`][branch-send-v4] branch holds the commit tree of Mozilla's last
-experimental version which was still a work in progress (featuring file
-reporting, download tokens, trust warnings and FxA changes), this has
-selectively been merged into this fork.
-Please consider to [donate][donate] to allow me to keep working on this.
+- Node.js 16.x
+- Redis
+- S3 互換ストレージ
 
-Thanks [Mozilla][mozilla] for building this amazing tool!
+## 環境変数
 
-[branch-mozilla-master]: https://gitlab.com/timvisee/send/-/tree/mozilla-master
-[branch-send-v3]: https://gitlab.com/timvisee/send/-/tree/send-v3
-[branch-send-v4]: https://gitlab.com/timvisee/send/-/tree/send-v4
-[donate]: https://timvisee.com/donate
-[ffsend]: https://github.com/timvisee/ffsend
-[fork-commit]: https://gitlab.com/timvisee/send/-/commit/3e9be676413a6e1baaf6a354c180e91899d10bec
-[mozilla-patches-pr]: https://gitlab.com/timvisee/send/-/merge_requests/3
-[mozilla-patches]: https://gitlab.com/timvisee/send/-/compare/3e9be676413a6e1baaf6a354c180e91899d10bec...mozilla-master
-[mozilla-send]: https://github.com/mozilla/send
-[mozilla]: https://mozilla.org/
-[remove-branding-pr]: https://gitlab.com/timvisee/send/-/merge_requests/2
+上流の全設定は [server/config.js](server/config.js) を参照してください。ここでは本フォークで追加・変更したものを示します。
 
----
+### 大容量・容量管理
 
-**Docs:** [FAQ](docs/faq.md), [Encryption](docs/encryption.md), [Build](docs/build.md), [Docker](docs/docker.md), [More](docs/)
+| 変数 | 既定値 | 説明 |
+|---|---|---|
+| `MAX_FILE_SIZE` | `322122547200` | 1 アップロードの最大サイズ (300 GiB) |
+| `BUICHA_LARGE_FILE_THRESHOLD` | `10737418240` | 大容量扱いになる閾値 (10 GiB) |
+| `BUICHA_LARGE_EXPIRE_SECONDS` | `86400` | 大容量ファイルの有効期限 (秒) |
+| `BUICHA_STORAGE_QUOTA_BYTES` | `2000000000000` | 全体保存量の上限 (2TB) |
+| `BUICHA_SWEEP_INTERVAL_SECONDS` | `600` | 掃除処理の間隔 (秒) |
+| `BUICHA_SWEEP_ORPHAN_MIN_AGE_SECONDS` | `691200` | 追跡外 S3 オブジェクトを削除する最小経過時間 (8 日) |
+| `BUICHA_UPLOAD_IDLE_TIMEOUT_SECONDS` | `60` | この時間内に `BUICHA_UPLOAD_MIN_BYTES_PER_WINDOW` 以上の受信が無いアップロードは切断し、予約を解放 |
+| `BUICHA_UPLOAD_MIN_BYTES_PER_WINDOW` | `1048576` | 上記の時間内に必要な最小受信バイト数 (1 MiB) |
+| `BUICHA_MAX_CONCURRENT_LARGE_UPLOADS` | `3` | 大容量アップロードの同時実行数の上限 |
+| `BUICHA_RECONCILE_INTERVAL_SECONDS` | `21600` | 既存 S3 オブジェクトの追跡登録を再実行する間隔 (秒、6 時間) |
+| `BUICHA_SWEEP_ORPHAN_MAX_PER_RUN` | `50` | 1 回の掃除で孤立オブジェクト候補がこの数を超えた場合は削除を中止して警告（redis 消失時の安全弁） |
+| `BUICHA_SWEEP_ORPHAN_DRY_RUN` | `false` | `true` にすると孤立オブジェクトを削除せずログのみ出力 |
 
----
+### フッター
 
-## Table of Contents
+| 変数 | 既定値 | 説明 |
+|---|---|---|
+| `FOOTER_SOURCE_URL` | `https://github.com/kazunamine/sendbuichajp` | フッターに表示するソースコードの URL |
 
-* [What it does](#what-it-does)
-* [Requirements](#requirements)
-* [Development](#development)
-* [Commands](#commands)
-* [Configuration](#configuration)
-* [Localization](#localization)
-* [Contributing](#contributing)
-* [Instances](#instances)
-* [Deployment](#deployment)
-* [Clients](#clients)
-* [License](#license)
+### 管理画面
 
----
+| 変数 | 既定値 | 説明 |
+|---|---|---|
+| `ADMIN_ENABLED` | `false` | 管理画面を有効化 |
+| `ADMIN_PORT` | `2526` | 管理画面のポート |
+| `ADMIN_LISTEN_ADDRESS` | `0.0.0.0` | 待ち受けアドレス |
+| `ADMIN_ALLOWED_CIDRS` | `127.0.0.1/32,::1/128,192.168.0.0/16,10.0.0.0/8` | 接続を許可する CIDR |
+| `ADMIN_TRUSTED_PROXIES` | (空) | X-Forwarded-For を信用するプロキシ IP |
+| `ADMIN_RP_ID` | `send-admin.buicha.jp` | パスキーの RP ID |
+| `ADMIN_ORIGIN` | `https://send-admin.buicha.jp` | 管理画面のオリジン |
+| `ADMIN_SESSION_SECRET` | (必須) | セッション署名用の秘密値。未設定だと管理画面は起動しません |
+| `ADMIN_SETUP_TOKEN` | (空) | 初回セットアップ用トークン。管理者未作成時のみ有効 |
+| `ADMIN_DATA_DIR` | `/app/admin-data` | 管理者資格情報の保存先（ボリューム必須） |
 
-## What it does
+## ビルドと起動
 
-A file sharing experiment which allows you to send encrypted files to other users.
+```sh
+# Docker (例: docker-compose.yml の change-me / your-* を置き換えてから)
+docker compose up -d --build
 
----
+# イメージのみビルド
+docker build -t sendbuichajp .
+```
 
-## Requirements
+GitHub Actions が `ghcr.io/kazunamine/sendbuichajp` にイメージを公開します。
+公開アプリは容器内 1443、管理画面は 2526 です（compose 例では 2525:1443 と 2526:2526）。
+`/app/admin-data` は必ずボリュームにしてください。
 
-- [Node.js 16.x](https://nodejs.org/)
-- [Redis server](https://redis.io/) (optional for development)
-- [AWS S3](https://aws.amazon.com/s3/) or compatible service (optional)
+## 管理画面の公開方法の注意
 
----
+- 管理画面は LAN 専用のホスト名（例: `send-admin.buicha.jp` を LAN 内 DNS で解決）で提供してください。
+- パスキー (WebAuthn) は安全なコンテキストが必要なため、HTTPS 必須です。`ADMIN_RP_ID` と `ADMIN_ORIGIN` はそのホスト名に合わせてください。
+- インターネット公開側のリバースプロキシに 2526 を出さないでください。
+- プロキシ経由の場合は `ADMIN_TRUSTED_PROXIES` にそのプロキシの IP のみを指定してください。
 
-## Development
+## 運用上の注意
 
-To start an ephemeral development server, run:
+- redis は必ず永続化してください（`appendonly yes` とボリューム）。redis が消えると全ファイルがダウンロード不能になり、S3 上の実体は孤立オブジェクトとして掃除対象になります。
+- `ADMIN_SETUP_TOKEN` は初回セットアップ完了後に環境変数から削除してください。推測困難な長いランダム値を使ってください（例: `openssl rand -hex 32`）。
+- `ADMIN_SESSION_SECRET` は 32 文字以上が必須です。
+- `admin-data` を bind mount する場合は、コンテナの app ユーザー (uid 1000) が書き込める権限にしてください。
+- `ADMIN_TRUSTED_PROXIES` にはリバースプロキシの IP を必ず設定してください。プロキシから `X-Forwarded-For` が来ない場合、管理画面は 403 になります。
+
+## 開発
 
 ```sh
 npm install
-npm start
+npm start     # http://localhost:8080
 ```
 
-Then, browse to http://localhost:8080
+| コマンド | 説明 |
+|---|---|
+| `npm run lint` | CSS / JS の lint |
+| `npm run test:backend` | バックエンドテスト |
+| `npm run build` | 本番アセットのビルド |
+| `npm run prod` | 本番設定で起動 |
 
----
+上流のドキュメント: [docs/](docs/)
 
-## Commands
+## ライセンス
 
-| Command          | Description |
-|------------------|-------------|
-| `npm run format` | Formats the frontend and server code using **prettier**.
-| `npm run lint`   | Lints the CSS and JavaScript code.
-| `npm test`       | Runs the suite of mocha tests.
-| `npm start`      | Runs the server in development configuration.
-| `npm run build`  | Builds the production assets.
-| `npm run prod`   | Runs the server in production configuration.
-
----
-
-## Configuration
-
-The server is configured with environment variables. See [server/config.js](server/config.js) for all options and [docs/docker.md](docs/docker.md) for examples.
-
----
-
-## Localization
-
-See: [docs/localization.md](docs/localization.md)
-
----
-
-## Contributing
-
-Pull requests are always welcome! Feel free to check out the list of "good first issues" (to be implemented).
-
----
-
-## Instances
-
-Find a list of public instances here: https://github.com/timvisee/send-instances/
-
----
-
-## Deployment
-
-See: [docs/deployment.md](docs/deployment.md)
-
-Docker quickstart: [docs/docker.md](docs/docker.md)
-
-AWS example using Ubuntu Server `20.04`: [docs/AWS.md](docs/AWS.md)
-
----
-
-## Clients
-
-- Web: _this repository_
-- Command-line: [`ffsend`](https://github.com/timvisee/ffsend)
-- Android: _see [Android](#android) section_
-- Thunderbird: [FileLink provider for Send](https://addons.thunderbird.net/thunderbird/addon/filelink-provider-for-send/)
-
-#### Android
-
-The android implementation is contained in the `android` directory,
-and can be viewed locally for easy testing and editing by running `ANDROID=1 npm
-start` and then visiting <http://localhost:8080>. CSS and image files are
-located in the `android/app/src/main/assets` directory.
-
----
-
-## License
-
-[Mozilla Public License Version 2.0](LICENSE)
-
-[qrcode.js](https://github.com/kazuhikoarase/qrcode-generator) licensed under MIT
-
----
+[Mozilla Public License 2.0](LICENSE)。改変の概要は [NOTICE.md](NOTICE.md) を参照してください。
+上流: https://github.com/timvisee/send ／ [qrcode.js](https://github.com/kazuhikoarase/qrcode-generator) は MIT。

@@ -21,6 +21,8 @@ export default class Archive {
     this.timeLimit = defaultTimeLimit;
     this.dlimit = defaultDownloadLimit;
     this.password = null;
+    this.large = false;
+    this.timeLimitBeforeLarge = null;
   }
 
   get name() {
@@ -68,6 +70,27 @@ export default class Archive {
     return true;
   }
 
+  // Pin the expiry to largeExpireSeconds while the total size exceeds
+  // threshold; restore the previous choice when it drops back.
+  // Pass a falsy threshold to disable. Returns true if large mode is active.
+  applyLargeMode(threshold, largeExpireSeconds) {
+    const large = !!threshold && this.size > threshold;
+    if (large && !this.large) {
+      this.timeLimitBeforeLarge = this.timeLimit;
+    } else if (!large && this.large) {
+      this.timeLimit =
+        this.timeLimitBeforeLarge !== null
+          ? this.timeLimitBeforeLarge
+          : this.defaultTimeLimit;
+      this.timeLimitBeforeLarge = null;
+    }
+    this.large = large;
+    if (large) {
+      this.timeLimit = largeExpireSeconds;
+    }
+    return large;
+  }
+
   remove(file) {
     const index = this.files.indexOf(file);
     if (index > -1) {
@@ -80,5 +103,7 @@ export default class Archive {
     this.dlimit = this.defaultDownloadLimit;
     this.timeLimit = this.defaultTimeLimit;
     this.password = null;
+    this.large = false;
+    this.timeLimitBeforeLarge = null;
   }
 }

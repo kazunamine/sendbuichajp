@@ -222,6 +222,11 @@ const web = {
         {
           context: 'public',
           from: '*.*'
+        },
+        {
+          // self-hosted fonts and their licenses (referenced by public/buicha-fonts.css)
+          context: 'public',
+          from: 'fonts/*'
         }
       ]
     }),

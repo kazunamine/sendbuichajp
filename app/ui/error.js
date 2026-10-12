@@ -8,7 +8,7 @@ module.exports = function(state, emit) {
     <main class="main">
       ${state.modal && modal(state, emit)}
       <section
-        class="flex flex-col items-center justify-center h-full w-full p-6 md:p-8 overflow-hidden md:rounded-xl md:shadow-big"
+        class="flex flex-col items-center justify-center h-full w-full p-6 md:p-8 overflow-hidden"
       >
         <h1 class="text-center text-3xl font-bold my-2">
           ${state.translate('errorPageHeader')}

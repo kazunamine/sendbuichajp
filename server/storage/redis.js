@@ -33,5 +33,25 @@ module.exports = function(config) {
   client.hgetallAsync = promisify(client.hgetall);
   client.hgetAsync = promisify(client.hget);
   client.pingAsync = promisify(client.ping);
+  // Extra commands used by usage/sweeper tracking. Guarded because
+  // redis-mock (development) may not implement all of them.
+  [
+    'pttl',
+    'exists',
+    'get',
+    'set',
+    'del',
+    'hset',
+    'hmset',
+    'zadd',
+    'zrem',
+    'zrange',
+    'zrangebyscore',
+    'zscore'
+  ].forEach(cmd => {
+    if (typeof client[cmd] === 'function') {
+      client[`${cmd}Async`] = promisify(client[cmd]).bind(client);
+    }
+  });
   return client;
 };

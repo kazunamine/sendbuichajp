@@ -35,7 +35,10 @@ module.exports = function(state, emit) {
         state.archive.dlimit = selected;
         emit('render');
         if (selected > parseInt(state.user.maxDownloads || '0')) {
-          console.log('Chosen max download count is larger than the allowed limit', selected)
+          console.log(
+            'Chosen max download count is larger than the allowed limit',
+            selected
+          );
         }
       },
       'expire-after-dl-count-select'
@@ -43,9 +46,12 @@ module.exports = function(state, emit) {
     dlCountSelect
   );
 
-  const expires = state.DEFAULTS.EXPIRE_TIMES_SECONDS.filter(
-    i => state.capabilities.account || i <= state.user.maxExpireSeconds
-  );
+  const large = state.archive.large && state.capacity;
+  const expires = large
+    ? [state.capacity.largeExpireSeconds]
+    : state.DEFAULTS.EXPIRE_TIMES_SECONDS.filter(
+        i => state.capabilities.account || i <= state.user.maxExpireSeconds
+      );
 
   const timeSelect = el.querySelector('#timespan');
   el.replaceChild(
@@ -61,13 +67,27 @@ module.exports = function(state, emit) {
         state.archive.timeLimit = selected;
         emit('render');
         if (selected > parseInt(state.user.maxExpireSeconds || '0')) {
-          console.log('Chosen download expiration is larger than the allowed limit', selected)
+          console.log(
+            'Chosen download expiration is larger than the allowed limit',
+            selected
+          );
         }
       },
       'expire-after-time-select'
     ),
     timeSelect
   );
+
+  if (large) {
+    return html`
+      <div>
+        ${el}
+        <p class="px-1 mt-2 text-sm buicha-large-mode-notice">
+          ${state.translate('buichaLargeModeNotice')}
+        </p>
+      </div>
+    `;
+  }
 
   return el;
 };

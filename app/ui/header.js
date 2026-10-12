@@ -36,9 +36,7 @@ class Header extends Component {
         ? html`
             <a class="flex flex-row items-center">
               <img src="${assetMap.icon}" />
-              <svg class="w-48">
-                <use xlink:href="${assetMap.wordmark}" />
-              </svg>
+              <span class="wordmark">${this.state.translate('title')}</span>
             </a>
           `
         : html`
@@ -47,9 +45,7 @@ class Header extends Component {
                 alt="${this.state.translate('title')}"
                 src="${assetMap.icon}"
               />
-              <svg viewBox="66 0 340 64" class="w-48 md:w-64">
-                <use xlink:href="${assetMap.wordmark}" />
-              </svg>
+              <span class="wordmark">${this.state.translate('title')}</span>
             </a>
           `;
     return html`

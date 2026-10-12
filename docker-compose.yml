@@ -1,19 +1,67 @@
+# ぶいちゃ便！ 構成例。実運用では change-me / your-* の値を必ず置き換えること。
 version: "3"
 services:
-  web:
+  send:
     build: .
-    links:
+    # image: ghcr.io/kazunamine/sendbuichajp:latest
+    depends_on:
       - redis
     ports:
-      - "1443:1443"
+      - "2525:1443"   # 公開アプリ
+      - "2526:2526"   # 管理画面（LAN 内のみに公開すること）
+    volumes:
+      - admin-data:/app/admin-data
     environment:
+      - BASE_URL=https://send.buicha.jp
+      - DETECT_BASE_URL=false
+      - CUSTOM_TITLE=ぶいちゃ便！
       - REDIS_HOST=redis
+      # S3 (placeholders)
+      - S3_BUCKET=your-bucket
+      - S3_ENDPOINT=http://your-s3-host:8333
+      - S3_USE_PATH_STYLE_ENDPOINT=true
+      - AWS_ACCESS_KEY_ID=your-access-key
+      - AWS_SECRET_ACCESS_KEY=your-secret-key
+      - AWS_REGION=us-east-1
+      # Large file / quota
+      - MAX_FILE_SIZE=322122547200
+      - BUICHA_LARGE_FILE_THRESHOLD=10737418240
+      - BUICHA_LARGE_EXPIRE_SECONDS=86400
+      - BUICHA_STORAGE_QUOTA_BYTES=2000000000000
+      - BUICHA_SWEEP_INTERVAL_SECONDS=600
+      - BUICHA_SWEEP_ORPHAN_MIN_AGE_SECONDS=691200
+      # 最後の IDLE_TIMEOUT 秒間に MIN_BYTES 以上受信が無いアップロードは切断し予約を解放
+      - BUICHA_UPLOAD_IDLE_TIMEOUT_SECONDS=60
+      - BUICHA_UPLOAD_MIN_BYTES_PER_WINDOW=1048576
+      # 大容量アップロードの同時実行数上限
+      - BUICHA_MAX_CONCURRENT_LARGE_UPLOADS=3
+      # 既存 S3 オブジェクトの追跡登録の再実行間隔 (秒)
+      - BUICHA_RECONCILE_INTERVAL_SECONDS=21600
+      # 1 回の掃除で孤立候補がこの数を超えたら削除を中止し警告（redis 消失時の安全弁）
+      - BUICHA_SWEEP_ORPHAN_MAX_PER_RUN=50
+      # true なら孤立オブジェクトを削除せずログのみ
+      - BUICHA_SWEEP_ORPHAN_DRY_RUN=false
+      # フッターのソースコード URL
+      - FOOTER_SOURCE_URL=https://github.com/kazunamine/sendbuichajp
+      # Admin UI
+      - ADMIN_ENABLED=true
+      - ADMIN_PORT=2526
+      - ADMIN_LISTEN_ADDRESS=0.0.0.0
+      - ADMIN_ALLOWED_CIDRS=127.0.0.1/32,::1/128,192.168.0.0/16,10.0.0.0/8
+      - ADMIN_TRUSTED_PROXIES=192.168.1.100
+      - ADMIN_RP_ID=send-admin.buicha.jp
+      - ADMIN_ORIGIN=https://send-admin.buicha.jp
+      - ADMIN_SESSION_SECRET=change-me  # 必ず32文字以上のランダム値に変更（例: openssl rand -hex 32）。未満だと管理画面は起動しない
+      # 初回セットアップ用。セットアップ完了後にこの行を削除すること（例: openssl rand -hex 32 で生成）
+      - ADMIN_SETUP_TOKEN=change-me-to-random-hex
+      - ADMIN_DATA_DIR=/app/admin-data
   redis:
     image: redis:alpine
-  selenium-firefox:
-    image: b4handjr/selenium-firefox
-    ports:
-      - "${VNC_PORT:-5900}:5900"
-    shm_size: 2g
+    # 永続化必須: redis が消えると全ファイルがダウンロード不能になる
+    command: redis-server --appendonly yes
     volumes:
-      - .:/code
+      - redis-data:/data
+
+volumes:
+  redis-data:
+  admin-data:

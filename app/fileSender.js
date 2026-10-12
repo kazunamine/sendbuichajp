@@ -61,6 +61,7 @@ export default class FileSender extends Nanobus {
       archive.timeLimit,
       archive.dlimit,
       bearerToken,
+      archive.size,
       p => {
         this.progress = [p, totalSize];
         this.emit('progress');

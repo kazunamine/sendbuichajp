@@ -9,6 +9,7 @@ const language = require('../middleware/language');
 const pages = require('./pages');
 const filelist = require('./filelist');
 const clientConstants = require('../clientConstants');
+const usage = require('../usage');
 
 const IS_DEV = config.env === 'development';
 const ID_REGEX = '([0-9a-fA-F]{10,16})';
@@ -93,6 +94,17 @@ module.exports = function(app) {
   app.get('/config', function(req, res) {
     res.json(clientConstants);
   });
+  app.get('/api/capacity', async function(req, res) {
+    try {
+      const capacity = await usage.getCapacity();
+      delete capacity.largeModeManual;
+      res.json(capacity);
+    } catch (e) {
+      res.sendStatus(500);
+    }
+  });
+  app.get('/terms', language, pages.terms);
+  app.get('/privacy', language, pages.privacy);
   app.get('/error', language, pages.blank);
   app.get('/oauth', language, pages.blank);
   app.get('/login', language, pages.index);

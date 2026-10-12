@@ -147,6 +147,15 @@ function password(state) {
   }
 }
 
+function extTag(name) {
+  const m = /\.([A-Za-z0-9]{1,8})$/.exec(name || '');
+  return m
+    ? html`
+        <span class="tag">${m[1]}</span>
+      `
+    : '';
+}
+
 function fileInfo(file, action) {
   return html`
     <send-file class="flex flex-row items-center p-3 w-full">
@@ -154,10 +163,8 @@ function fileInfo(file, action) {
         <use xlink:href="${assets.get('blue_file.svg')}#icon"/>
       </svg>
       <p class="ml-4 w-full">
-        <h1 class="text-base font-medium word-break-all">${file.name}</h1>
-        <div class="text-sm font-normal opacity-75 pt-1">${bytes(
-          file.size
-        )}</div>
+        <h1 class="file-name word-break-all">${file.name}</h1>
+        <div class="meta pt-1">${extTag(file.name)} ${bytes(file.size)}</div>
       </p>
       ${action}
     </send-file>`;
@@ -170,10 +177,10 @@ function archiveInfo(archive, action) {
         <use xlink:href="${assets.get('blue_file.svg')}#icon"/>
       </svg>
       <p class="flex-grow">
-        <h1 class="text-base font-medium word-break-all">${archive.name}</h1>
-        <div class="text-sm font-normal opacity-75 pt-1">${bytes(
-          archive.size
-        )}</div>
+        <h1 class="file-name word-break-all">${archive.name}</h1>
+        <div class="meta pt-1">${extTag(archive.name)} ${bytes(
+    archive.size
+  )}</div>
       </p>
       ${action}
     </p>`;
@@ -261,7 +268,7 @@ module.exports = function(state, emit, archive) {
   return html`
     <send-archive
       id="archive-${archive.id}"
-      class="flex flex-col items-start rounded-default shadow-light bg-white p-4 w-full dark:bg-grey-90 dark:border-default dark:border-grey-70"
+      class="flex flex-col items-start p-4 w-full"
     >
       ${archiveInfo(
         archive,
@@ -276,7 +283,7 @@ module.exports = function(state, emit, archive) {
           />
         `
       )}
-      <div class="text-sm opacity-75 w-full mt-2 mb-2">
+      <div class="meta w-full mt-2 mb-2">
         ${expiryInfo(state.translate, archive)}
       </div>
       ${archiveDetails(state.translate, archive)}
@@ -324,22 +331,17 @@ module.exports = function(state, emit, archive) {
 
 module.exports.wip = function(state, emit) {
   return html`
-    <send-upload-area
-      class="flex flex-col bg-white h-full w-full dark:bg-grey-90"
-      id="wip"
-    >
+    <send-upload-area class="flex flex-col h-full w-full" id="wip">
       ${list(
         Array.from(state.archive.files)
           .reverse()
           .map(f =>
             fileInfo(f, remove(f, state.translate('deleteButtonHover')))
           ),
-        'flex-shrink bg-grey-10 rounded-t overflow-y-auto px-6 py-4 md:h-full md:max-h-half-screen dark:bg-black',
-        'bg-white px-2 my-2 shadow-light rounded-default dark:bg-grey-90 dark:border-default dark:border-grey-80'
+        'flex-shrink overflow-y-auto px-6 py-4 md:h-full md:max-h-half-screen',
+        'px-2 my-2'
       )}
-      <div
-        class="flex-shrink-0 flex-grow flex items-end p-4 bg-grey-10 rounded-b mb-1 font-medium dark:bg-grey-90"
-      >
+      <div class="flex-shrink-0 flex-grow flex items-end p-4 mb-1 font-medium">
         <input
           id="file-upload"
           class="opacity-0 w-0 h-0 appearance-none absolute overflow-hidden"
@@ -363,7 +365,7 @@ module.exports.wip = function(state, emit) {
             </svg>
             ${state.translate('addFilesButton')}
           </label>
-          <div class="font-normal text-sm text-grey-70 dark:text-grey-40">
+          <div class="meta">
             ${state.translate('totalSize', {
               size: bytes(state.archive.size)
             })}
@@ -438,10 +440,10 @@ module.exports.uploading = function(state, emit) {
   return html`
     <send-upload-area
       id="${archive.id}"
-      class="flex flex-col items-start rounded-default shadow-light bg-white p-4 w-full dark:bg-grey-90"
+      class="flex flex-col items-start p-4 w-full"
     >
       ${archiveInfo(archive)}
-      <div class="text-xs opacity-75 w-full mt-2 mb-2">
+      <div class="meta w-full mt-2 mb-2">
         ${expiryInfo(state.translate, {
           dlimit: state.archive.dlimit,
           dtotal: 0,
@@ -498,7 +500,7 @@ module.exports.empty = function(state, emit) {
 
   return html`
     <send-upload-area
-      class="flex flex-col items-center justify-center border-2 border-dashed border-grey-transparent rounded-default px-6 py-16 h-full w-full dark:border-grey-60"
+      class="flex flex-col items-center justify-center dropzone px-6 py-16 h-full w-full"
       onclick="${e => {
         if (e.target.tagName !== 'LABEL') {
           document.getElementById('file-upload').click();
@@ -508,7 +510,7 @@ module.exports.empty = function(state, emit) {
       <svg class="w-10 h-10 link-primary">
         <use xlink:href="/${assets.get('addfiles.svg')}#plus" />
       </svg>
-      <div class="pt-6 pb-2 text-center text-lg font-bold tracking-wide">
+      <div class="pt-6 pb-2 text-center text-lg font-bold">
         ${state.translate('dragAndDropFiles')}
       </div>
       <div class="pb-6 text-center text-base">
@@ -602,9 +604,7 @@ module.exports.preview = function(state, emit) {
     : '';
 
   return html`
-    <send-archive
-      class="flex flex-col max-h-full bg-white p-4 w-full md:w-128 dark:bg-grey-90"
-    >
+    <send-archive class="flex flex-col max-h-full p-4 w-full md:w-128">
       <div class="border-default rounded-default py-3 px-6 dark:border-grey-70">
         ${archiveInfo(archive)} ${details}
       </div>
@@ -632,9 +632,7 @@ module.exports.downloading = function(state) {
   const progress = state.transfer.progressRatio;
   const progressPercent = percent(progress);
   return html`
-    <send-archive
-      class="flex flex-col bg-white rounded-default shadow-light p-4 w-full max-w-sm md:w-128 dark:bg-grey-90"
-    >
+    <send-archive class="flex flex-col p-4 w-full max-w-sm md:w-128">
       ${archiveInfo(archive)}
       <div class="link-primary text-sm font-medium mt-2">
         ${progressPercent}

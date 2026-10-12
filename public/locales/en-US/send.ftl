@@ -1,4 +1,4 @@
-title = Send
+title = ぶいちゃ便！
 importingFile = Importing…
 encryptingFile = Encrypting…
 decryptingFile = Decrypting…
@@ -46,8 +46,8 @@ passwordSetError = This password could not be set
 
 ## Send version 2 strings
 
--send-brand = Send
--send-short-brand = Send
+-send-brand = ぶいちゃ便！
+-send-short-brand = ぶいちゃ便！
 -firefox = Firefox
 -mozilla = Mozilla
 
@@ -145,3 +145,16 @@ shareMessage = Download “{ $name }” with { -send-brand }: simple, safe file 
 learnMore = Learn more.
 
 sponsoredByThunderbird = Sponsored by Thunderbird
+
+## ぶいちゃ便! additions
+
+buichaDescription = Encrypt files in your browser and share them with a link that expires automatically.
+buichaLargeModeNotice = Files larger than 10 GB are automatically deleted after 24 hours.
+buichaLargeModeUnavailable = Sending large files over 10 GB is currently suspended.
+buichaQuotaFull = Uploads are currently not accepted because the storage limit has been reached.
+buichaUploadRejectedCapacity = The upload could not be completed because of capacity limits. Please try again later.
+buichaTermsTitle = Terms of Service
+buichaPrivacyTitle = Privacy Policy
+buichaSourceCode = Source code
+buichaContact = Contact
+buichaBackToTop = Back to top

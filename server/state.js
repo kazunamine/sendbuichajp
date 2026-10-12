@@ -8,10 +8,14 @@ const path = require('path');
 
 module.exports = async function(req) {
   const locale = (() => {
-    if (config.custom_locale != '' && fs.existsSync(path.join(__dirname,'../public/locales',config.custom_locale))) {
-        return config.custom_locale;
-    }
-    else {
+    if (
+      config.custom_locale != '' &&
+      fs.existsSync(
+        path.join(__dirname, '../public/locales', config.custom_locale)
+      )
+    ) {
+      return config.custom_locale;
+    } else {
       return req.language || 'en-US';
     }
   })();
@@ -32,6 +36,7 @@ module.exports = async function(req) {
   if (config.survey_url) {
     prefs.surveyUrl = config.survey_url;
   }
+  const translate = getTranslator(locale);
   const baseUrl = config.deriveBaseUrl(req);
   const uiAssets = {
     android_chrome_192px: assets.get('android-chrome-192x192.png'),
@@ -56,9 +61,13 @@ module.exports = async function(req) {
     },
     locale,
     capabilities: { account: false },
-    translate: getTranslator(locale),
-    title: config.custom_title,
-    description: config.custom_description,
+    translate,
+    // buicha: fall back to the localized brand when the upstream defaults are unchanged
+    title:
+      config.custom_title === 'Send' ? translate('title') : config.custom_title,
+    description: config.custom_description.startsWith('Encrypt and send files')
+      ? translate('buichaDescription')
+      : config.custom_description,
     baseUrl,
     ui: {
       colors: {

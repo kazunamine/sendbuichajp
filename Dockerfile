@@ -64,10 +64,15 @@ COPY --chown=app:app --from=builder /app/dist dist
 
 RUN npm ci --production && npm cache clean --force
 RUN mkdir -p /app/.config/configstore
+RUN mkdir -p /app/admin-data
 RUN ln -s dist/version.json version.json
 
 ENV PORT=1443
 
-EXPOSE ${PORT}
+# Admin data (credentials JSON) must be persisted: mount a volume here
+VOLUME /app/admin-data
+
+# 1443: public app, 2526: LAN-only admin UI
+EXPOSE ${PORT} 2526
 
 CMD ["node", "server/bin/prod.js"]

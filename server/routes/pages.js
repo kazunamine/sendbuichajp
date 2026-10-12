@@ -40,6 +40,22 @@ module.exports = {
     }
   },
 
+  terms: async function(req, res) {
+    const appState = await state(req);
+    appState.title = `${appState.translate(
+      'buichaTermsTitle'
+    )} - ${appState.translate('title')}`;
+    res.send(stripEvents(routes().toString('/terms', appState)));
+  },
+
+  privacy: async function(req, res) {
+    const appState = await state(req);
+    appState.title = `${appState.translate(
+      'buichaPrivacyTitle'
+    )} - ${appState.translate('title')}`;
+    res.send(stripEvents(routes().toString('/privacy', appState)));
+  },
+
   unsupported: async function(req, res) {
     const appState = await state(req);
     res.send(

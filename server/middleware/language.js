@@ -14,15 +14,18 @@ function allLangs() {
   return fs.readdirSync(path.join(__dirname, '..', '..', 'public', 'locales'));
 }
 
-const languages = config.l10n_dev ? allLangs() : availableLanguages;
+// buicha: only Japanese (default) and English are offered.
+const languages = (config.l10n_dev ? allLangs() : availableLanguages).filter(
+  l => l === 'ja' || l === 'en-US'
+);
 
 module.exports = function(req, res, next) {
-  const header = req.headers['accept-language'] || 'en-US';
+  const header = req.headers['accept-language'] || 'ja';
   if (header.length > 255) {
-    req.language = 'en-US';
+    req.language = 'ja';
     return next();
   }
-  const langs = header.replace(/\s/g, '').match(acceptLanguages) || ['en-US'];
+  const langs = header.replace(/\s/g, '').match(acceptLanguages) || ['ja'];
   const preferred = langs
     .map(l => {
       const parts = l.split(';');
@@ -36,7 +39,7 @@ module.exports = function(req, res, next) {
   req.language = negotiateLanguages(preferred, languages, {
     strategy: 'lookup',
     likelySubtags: langData.supplemental.likelySubtags,
-    defaultLocale: 'en-US'
+    defaultLocale: 'ja'
   })[0];
   next();
 };

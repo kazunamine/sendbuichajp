@@ -3,9 +3,16 @@ const assets = require('../common/assets');
 const initScript = require('./initScript');
 
 module.exports = function(state, body = '') {
-  const custom_css = state.ui.assets.custom_css !== ''
-    ? html`<link rel="stylesheet" type="text/css" href="${state.ui.assets.custom_css}" />`
-    : ''
+  const custom_css =
+    state.ui.assets.custom_css !== ''
+      ? html`
+          <link
+            rel="stylesheet"
+            type="text/css"
+            href="${state.ui.assets.custom_css}"
+          />
+        `
+      : '';
 
   return html`
     <!DOCTYPE html>
@@ -28,11 +35,35 @@ module.exports = function(state, body = '') {
         <meta property="og:image" content="${state.ui.assets.facebook}" />
         <meta name="twitter:image" content="${state.ui.assets.twitter}" />
         <meta property="og:url" content="${state.baseUrl}" />
-        <meta name="theme-color" content="#220033" />
-        <meta name="msapplication-TileColor" content="#220033" />
+        <meta
+          name="theme-color"
+          content="#eeeff2"
+          media="(prefers-color-scheme: light)"
+        />
+        <meta
+          name="theme-color"
+          content="#101c38"
+          media="(prefers-color-scheme: dark)"
+        />
+        <meta name="color-scheme" content="light dark" />
+        <meta name="msapplication-TileColor" content="#101c38" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="${state.translate('title')}" />
+        <meta
+          property="og:locale"
+          content="${state.locale === 'ja' ? 'ja_JP' : 'en_US'}"
+        />
 
         <link rel="manifest" href="/app.webmanifest" />
+        <link
+          rel="preload"
+          href="/fonts/DotGothic16-buicha-subset.woff2"
+          as="font"
+          type="font/woff2"
+          crossorigin
+        />
         <link rel="stylesheet" type="text/css" href="/inter.css" />
+        <link rel="stylesheet" type="text/css" href="/buicha-fonts.css" />
         <style nonce=${state.cspNonce}>
           :root {
             --color-primary: ${state.ui.colors.primary};

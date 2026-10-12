@@ -82,6 +82,14 @@ async function fetchWithAuthAndRetry(url, params, keychain) {
   return result;
 }
 
+export async function getCapacity() {
+  const response = await fetch(getApiUrl('/api/capacity'));
+  if (!response.ok) {
+    throw new Error(response.status);
+  }
+  return response.json();
+}
+
 export async function del(id, owner_token) {
   const response = await fetch(
     getApiUrl(`/api/delete/${id}`),
@@ -191,6 +199,7 @@ async function upload(
   timeLimit,
   dlimit,
   bearerToken,
+  fileSize,
   onprogress,
   canceller
 ) {
@@ -213,7 +222,8 @@ async function upload(
       authorization: `send-v1 ${verifierB64}`,
       bearer: bearerToken,
       timeLimit,
-      dlimit
+      dlimit,
+      fileSize
     };
     const uploadInfoResponse = listenForResponse(ws, canceller);
     ws.send(JSON.stringify(fileMeta));
@@ -268,6 +278,7 @@ export function uploadWs(
   timeLimit,
   dlimit,
   bearerToken,
+  fileSize,
   onprogress
 ) {
   const canceller = { cancelled: false };
@@ -284,6 +295,7 @@ export function uploadWs(
       timeLimit,
       dlimit,
       bearerToken,
+      fileSize,
       onprogress,
       canceller
     )

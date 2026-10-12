@@ -36,6 +36,11 @@ module.exports = {
     fontFamily: {
       sans: [
         'Inter',
+        'Hiragino Sans',
+        'Hiragino Kaku Gothic ProN',
+        'Noto Sans JP',
+        'Yu Gothic UI',
+        'Meiryo',
         'system-ui',
         'BlinkMacSystemFont',
         '-apple-system',
@@ -62,11 +67,17 @@ module.exports = {
         'serif'
       ],
       mono: [
+        'JetBrains Mono',
         'Menlo',
         'Monaco',
         'Consolas',
         'Liberation Mono',
         'Courier New',
+        'Hiragino Sans',
+        'Hiragino Kaku Gothic ProN',
+        'Noto Sans JP',
+        'Yu Gothic UI',
+        'Meiryo',
         'monospace'
       ]
     },
@@ -99,7 +110,7 @@ module.exports = {
       loose: 1.75
     },
     letterSpacing: {
-      tight: '-0.05em',
+      tight: '-0.04em',
       normal: '0',
       wide: '0.05em'
     },
@@ -119,11 +130,12 @@ module.exports = {
     },
     borderColor: global.Object.assign({ default: colors['grey-30'] }, colors),
     borderRadius: {
+      // buicha design: radius is either 0 or pill
       none: '0',
-      sm: '.125rem',
-      default: '.25rem',
-      lg: '.5rem',
-      xl: '1rem',
+      sm: '0',
+      default: '0',
+      lg: '9999px',
+      xl: '0',
       full: '9999px'
     },
     width: {

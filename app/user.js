@@ -25,6 +25,8 @@ export default class User {
     this.limits = limits;
     this.storage = storage;
     this.data = storage.user || {};
+    // result of GET /api/capacity (null = unknown, fall back to limits)
+    this.capacity = null;
   }
 
   get info() {
@@ -81,7 +83,12 @@ export default class User {
   }
 
   get maxSize() {
-    return this.limits.MAX_FILE_SIZE;
+    const c = this.capacity;
+    if (!c) {
+      return this.limits.MAX_FILE_SIZE;
+    }
+    const base = c.largeModeEnabled ? c.largeMaxFileSize : c.normalMaxFileSize;
+    return Math.max(0, Math.min(base, c.remainingBytes));
   }
 
   get maxExpireSeconds() {

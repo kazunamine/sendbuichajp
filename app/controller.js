@@ -1,3 +1,4 @@
+import { getCapacity } from './api';
 import FileReceiver from './fileReceiver';
 import FileSender from './fileSender';
 import copyDialog from './ui/copyDialog';
@@ -24,6 +25,32 @@ export default function(state, emitter) {
       render();
     }
   }
+
+  // GET /api/capacity; on failure fall back to LIMITS (capacity = null)
+  async function refreshCapacity() {
+    try {
+      state.capacity = await getCapacity();
+    } catch (e) {
+      state.capacity = null;
+    }
+    state.user.capacity = state.capacity;
+    return state.capacity;
+  }
+
+  // pin expiry to 1 day when the archive is over the normal limit
+  function updateLargeMode() {
+    const c = state.capacity;
+    state.archive.applyLargeMode(
+      c && c.normalMaxFileSize,
+      c && c.largeExpireSeconds
+    );
+  }
+
+  state.capacity = null;
+  const capacityReady = refreshCapacity().then(() => {
+    updateLargeMode();
+    emitter.emit('render');
+  });
 
   function updateProgress() {
     if (updateTitle) {
@@ -61,6 +88,7 @@ export default function(state, emitter) {
     if (state.archive.numFiles === 0) {
       state.archive.clear();
     }
+    updateLargeMode();
     render();
   });
 
@@ -83,6 +111,11 @@ export default function(state, emitter) {
     if (files.length < 1) {
       return;
     }
+    await capacityReady;
+    if (state.capacity && !state.capacity.uploadsAccepted) {
+      state.modal = okDialog(state.translate('buichaQuotaFull'));
+      return render();
+    }
     const maxSize = state.user.maxSize;
     try {
       state.archive.addFiles(
@@ -90,13 +123,21 @@ export default function(state, emitter) {
         maxSize,
         state.LIMITS.MAX_FILES_PER_ARCHIVE
       );
+      updateLargeMode();
     } catch (e) {
-      state.modal = okDialog(
-        state.translate(e.message, {
-          size: bytes(maxSize),
-          count: state.LIMITS.MAX_FILES_PER_ARCHIVE
-        })
-      );
+      let message = state.translate(e.message, {
+        size: bytes(maxSize),
+        count: state.LIMITS.MAX_FILES_PER_ARCHIVE
+      });
+      const c = state.capacity;
+      if (e.message === 'fileTooBig' && c && !c.largeModeEnabled) {
+        // would fit in large mode, which is currently stopped
+        const total = Array.from(files).reduce((t, f) => t + f.size, 0);
+        if (state.archive.size + total <= c.largeMaxFileSize) {
+          message = state.translate('buichaLargeModeUnavailable');
+        }
+      }
+      state.modal = okDialog(message);
     }
     render();
   });
@@ -134,6 +175,23 @@ export default function(state, emitter) {
       );
       return render();
     }
+    await refreshCapacity();
+    updateLargeMode();
+    if (state.capacity && !state.capacity.uploadsAccepted) {
+      state.modal = okDialog(state.translate('buichaQuotaFull'));
+      return render();
+    }
+    if (state.archive.size > state.user.maxSize) {
+      const c = state.capacity;
+      state.modal = okDialog(
+        c && !c.largeModeEnabled && state.archive.size <= c.largeMaxFileSize
+          ? state.translate('buichaLargeModeUnavailable')
+          : state.translate('fileTooBig', {
+              size: bytes(state.user.maxSize)
+            })
+      );
+      return render();
+    }
     const archive = state.archive;
     const sender = new FileSender();
 
@@ -165,6 +223,23 @@ export default function(state, emitter) {
     } catch (err) {
       if (err.message === '0') {
         //cancelled. do nothing
+        render();
+      } else if (err.message === '507') {
+        // capacity exhausted or large mode stopped on the server
+        const c = await refreshCapacity();
+        const wasLarge = c && archive.size > c.normalMaxFileSize;
+        state.modal = okDialog(
+          state.translate(
+            wasLarge && !c.largeModeEnabled
+              ? 'buichaLargeModeUnavailable'
+              : 'buichaUploadRejectedCapacity'
+          )
+        );
+        render();
+      } else if (err.message === '413') {
+        state.modal = okDialog(
+          state.translate('fileTooBig', { size: bytes(state.user.maxSize) })
+        );
         render();
       } else if (err.message === '401') {
         const refreshed = await state.user.refresh();

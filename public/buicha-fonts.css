@@ -1,0 +1,18 @@
+/* Self-hosted fonts (SIL OFL 1.1). Licenses: /fonts/OFL-*.txt
+   DotGothic16: subset containing only the glyphs used for the wordmark.
+   JetBrains Mono: latin subset, variable weight. */
+@font-face {
+  font-family: 'DotGothic16';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/DotGothic16-buicha-subset.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url('fonts/JetBrainsMono-latin.woff2') format('woff2');
+}

@@ -30,3 +30,9 @@ app.use(
 app.use(pages.notfound);
 
 app.listen(config.listen_port, config.listen_address);
+
+require('../sweeper').start();
+
+if (require('../admin/config').load().enabled) {
+  require('../admin').start();
+}
