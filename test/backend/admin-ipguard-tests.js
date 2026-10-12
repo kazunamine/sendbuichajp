@@ -44,6 +44,58 @@ describe('admin ipguard', function() {
     });
   });
 
+  describe('CIDR matching (Node 16.13 BlockList regression)', function() {
+    it('/32 matches only itself', function() {
+      const l = ipguard.buildMatcher(['127.0.0.1/32']);
+      assert(ipguard.matches(l, '127.0.0.1'));
+      assert(!ipguard.matches(l, '192.168.1.17'));
+      assert(!ipguard.matches(l, '127.0.0.2'));
+    });
+    it('bare address (implicit /32) matches only itself', function() {
+      const l = ipguard.buildMatcher(['192.168.1.100']);
+      assert(ipguard.matches(l, '192.168.1.100'));
+      assert(ipguard.matches(l, '::ffff:192.168.1.100'));
+      assert(!ipguard.matches(l, '127.0.0.1'));
+      assert(!ipguard.matches(l, '172.21.0.1'));
+    });
+    it('::1/128 matches only itself', function() {
+      const l = ipguard.buildMatcher(['::1/128']);
+      assert(ipguard.matches(l, '::1'));
+      assert(ipguard.matches(l, '0:0:0:0:0:0:0:1'));
+      assert(!ipguard.matches(l, '::2'));
+      assert(!ipguard.matches(l, '192.168.1.17'));
+    });
+    it('/16 and /8 boundaries', function() {
+      const l16 = ipguard.buildMatcher(['192.168.0.0/16']);
+      assert(ipguard.matches(l16, '192.168.1.17'));
+      assert(!ipguard.matches(l16, '192.169.0.1'));
+      const l8 = ipguard.buildMatcher(['10.0.0.0/8']);
+      assert(ipguard.matches(l8, '10.1.2.3'));
+      assert(!ipguard.matches(l8, '11.0.0.1'));
+    });
+    it('0.0.0.0/0 matches every IPv4 but not IPv6', function() {
+      const l = ipguard.buildMatcher(['0.0.0.0/0']);
+      assert(ipguard.matches(l, '8.8.8.8'));
+      assert(ipguard.matches(l, '255.255.255.255'));
+      assert(!ipguard.matches(l, '2001:db8::1'));
+    });
+    it('IPv6 /64 boundary', function() {
+      const l = ipguard.buildMatcher(['2001:db8:1:2::/64']);
+      assert(ipguard.matches(l, '2001:db8:1:2::1'));
+      assert(ipguard.matches(l, '2001:db8:1:2:ffff:ffff:ffff:ffff'));
+      assert(!ipguard.matches(l, '2001:db8:1:3::'));
+      assert(!ipguard.matches(l, '2001:db8:1:1:ffff:ffff:ffff:ffff'));
+    });
+    it('throws on invalid CIDR', function() {
+      assert.throws(() => ipguard.buildMatcher(['10.0.0.0/abc']));
+      assert.throws(() => ipguard.buildMatcher(['10.0.0.0/-1']));
+      assert.throws(() => ipguard.buildMatcher(['10.0.0.0/']));
+      assert.throws(() => ipguard.buildMatcher(['::1/129']));
+      assert.throws(() => ipguard.buildMatcher(['nope/8']));
+      assert.throws(() => ipguard.buildMatcher(['']));
+    });
+  });
+
   describe('clientIp (X-Forwarded-For)', function() {
     const trusted = ipguard.buildMatcher(['192.168.1.100']);
     it('ignores XFF from untrusted peers', function() {

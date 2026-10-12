@@ -17,32 +17,118 @@ function normalizeIp(ip) {
   return s;
 }
 
+// Node 16.13 の net.BlockList は /32 や /128 のサブネットが全アドレスに
+// 一致する不具合があるため、BlockList を使わず自前で判定する。
+function parseIPv4(s) {
+  const parts = s.split('.');
+  if (parts.length !== 4) {
+    return null;
+  }
+  let n = BigInt(0);
+  for (const part of parts) {
+    if (!/^\d{1,3}$/.test(part) || Number(part) > 255) {
+      return null;
+    }
+    n = (n << BigInt(8)) | BigInt(Number(part));
+  }
+  return n;
+}
+
+// net.isIP(s) === 6 を通った文字列を 128bit の BigInt にする。
+function parseIPv6(s) {
+  let str = s.toLowerCase();
+  // 末尾の埋め込み IPv4 (例 ::1.2.3.4) を 16bit x2 に展開
+  const lastColon = str.lastIndexOf(':');
+  if (str.indexOf('.', lastColon) !== -1) {
+    const v4 = parseIPv4(str.slice(lastColon + 1));
+    if (v4 === null) {
+      return null;
+    }
+    str =
+      str.slice(0, lastColon + 1) +
+      (v4 >> BigInt(16)).toString(16) +
+      ':' +
+      (v4 & BigInt(0xffff)).toString(16);
+  }
+  const halves = str.split('::');
+  if (halves.length > 2) {
+    return null;
+  }
+  const head = halves[0] === '' ? [] : halves[0].split(':');
+  const tail =
+    halves.length === 2 && halves[1] !== '' ? halves[1].split(':') : [];
+  let groups;
+  if (halves.length === 2) {
+    const fill = 8 - head.length - tail.length;
+    if (fill < 1) {
+      return null;
+    }
+    groups = head.concat(new Array(fill).fill('0'), tail);
+  } else {
+    groups = head;
+  }
+  if (groups.length !== 8) {
+    return null;
+  }
+  let n = BigInt(0);
+  for (const g of groups) {
+    if (!/^[0-9a-f]{1,4}$/.test(g)) {
+      return null;
+    }
+    n = (n << BigInt(16)) | BigInt(parseInt(g, 16));
+  }
+  return n;
+}
+
+// 正規化済みの IP 文字列を { family, value } にする。不正なら null。
+function parseIp(a) {
+  const family = net.isIP(a);
+  if (family === 4) {
+    const value = parseIPv4(a);
+    return value === null ? null : { family: 4, value };
+  }
+  if (family === 6) {
+    const value = parseIPv6(a);
+    return value === null ? null : { family: 6, value };
+  }
+  return null;
+}
+
 function buildMatcher(cidrs) {
-  const list = new net.BlockList();
+  const rules = [];
   for (const c of cidrs) {
     const [addr, prefix] = c.split('/');
     const a = normalizeIp(addr);
-    const family = net.isIP(a);
-    if (!family) {
+    const parsed = parseIp(a);
+    if (!parsed) {
       throw new Error(`不正な CIDR/IP: ${c}`);
     }
-    const max = family === 4 ? 32 : 128;
-    const p = prefix === undefined ? max : Number(prefix);
-    if (!Number.isInteger(p) || p < 0 || p > max) {
+    const bits = parsed.family === 4 ? 32 : 128;
+    if (prefix !== undefined && !/^\d{1,3}$/.test(prefix)) {
       throw new Error(`不正な CIDR プレフィックス: ${c}`);
     }
-    list.addSubnet(a, p, family === 4 ? 'ipv4' : 'ipv6');
+    const p = prefix === undefined ? bits : Number(prefix);
+    if (!Number.isInteger(p) || p < 0 || p > bits) {
+      throw new Error(`不正な CIDR プレフィックス: ${c}`);
+    }
+    const shift = BigInt(bits - p);
+    rules.push({
+      family: parsed.family,
+      shift,
+      network: parsed.value >> shift
+    });
   }
-  return list;
+  return { rules };
 }
 
 function matches(list, ip) {
-  const a = normalizeIp(ip);
-  const family = net.isIP(a);
-  if (!family) {
+  const parsed = parseIp(normalizeIp(ip));
+  if (!parsed) {
     return false;
   }
-  return list.check(a, family === 4 ? 'ipv4' : 'ipv6');
+  return list.rules.some(
+    r => r.family === parsed.family && parsed.value >> r.shift === r.network
+  );
 }
 
 // 接続元 IP を決定する。
