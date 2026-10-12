@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const bodyParser = require('body-parser');
 const adminConfig = require('./config');
 const ipguard = require('./ipguard');
+const cfaccess = require('./cfaccess');
 const session = require('./session');
 const totp = require('./totp');
 const auth = require('./auth');
@@ -47,8 +48,28 @@ function createApp(cfg, deps = {}) {
   const app = express();
   app.disable('x-powered-by');
 
-  // 1. IP 制限（静的ファイルを含む全リクエスト）
-  app.use(ipguard.createGuard(cfg));
+  // 1. IP 制限 / Cloudflare Access 検証（静的ファイルを含む全リクエスト）
+  if (cfg.mode === 'cloudflare-access') {
+    app.use(cfaccess.createGuard(cfg, deps.cfAccess));
+    // 検証済みメールと Access 側ログアウトを HTML のヘッダに差し込む
+    app.use(function(req, res, next) {
+      const send = res.send.bind(res);
+      res.send = function(body) {
+        if (typeof body === 'string' && body.startsWith('<!DOCTYPE html>')) {
+          body = views.injectAccessBanner(body, {
+            email: req.accessEmail,
+            logoutUrl: cfaccess.LOGOUT_PATH
+          });
+        }
+        return send(body);
+      };
+      next();
+    });
+  } else if (!cfg.mode || cfg.mode === 'lan') {
+    app.use(ipguard.createGuard(cfg));
+  } else {
+    throw new Error(`不正な ADMIN_MODE: ${cfg.mode}`);
+  }
 
   // 2. セキュリティヘッダ
   app.use(helmet());
@@ -877,7 +898,38 @@ function start(env = process.env) {
     );
     return null;
   }
-  if (cfg.trustedProxies.length === 0) {
+  if (cfg.mode === 'cloudflare-access') {
+    const missing = [];
+    if (!cfg.cfTeamDomain) {
+      missing.push(
+        cfg.cfTeamDomainRaw
+          ? 'ADMIN_CF_ACCESS_TEAM_DOMAIN(不正な値)'
+          : 'ADMIN_CF_ACCESS_TEAM_DOMAIN'
+      );
+    }
+    if (cfg.cfAud.length === 0) {
+      missing.push('ADMIN_CF_ACCESS_AUD');
+    }
+    if (cfg.cfEmails.length === 0) {
+      missing.push('ADMIN_CF_ACCESS_EMAILS');
+    }
+    if (cfg.trustedProxies.length === 0) {
+      missing.push('ADMIN_TRUSTED_PROXIES');
+    }
+    if (missing.length) {
+      console.error(
+        `admin: cloudflare-access モードに必要な設定が未設定/不正のため管理画面を起動しません: ${missing.join(
+          ', '
+        )}`
+      );
+      return null;
+    }
+  } else if (cfg.mode !== 'lan') {
+    console.error(
+      `admin: ADMIN_MODE は lan または cloudflare-access にしてください(現在: ${cfg.mode})。管理画面を起動しません。`
+    );
+    return null;
+  } else if (cfg.trustedProxies.length === 0) {
     console.warn(
       'admin: 信頼プロキシ未設定: リバースプロキシ経由の場合はプロキシの IP が許可 CIDR に含まれると全リクエストが許可されます'
     );

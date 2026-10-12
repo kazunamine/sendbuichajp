@@ -1,4 +1,5 @@
 const path = require('path');
+const cfaccess = require('./cfaccess');
 
 const DEFAULT_CIDRS = '127.0.0.1/32,::1/128,192.168.0.0/16,10.0.0.0/8';
 
@@ -15,7 +16,15 @@ function load(env = process.env) {
     /\/+$/,
     ''
   );
+  const rawTeam = String(env.ADMIN_CF_ACCESS_TEAM_DOMAIN || '').trim();
   return {
+    mode: String(env.ADMIN_MODE || 'lan')
+      .trim()
+      .toLowerCase(),
+    cfTeamDomainRaw: rawTeam,
+    cfTeamDomain: cfaccess.normalizeTeamDomain(rawTeam),
+    cfAud: list(env.ADMIN_CF_ACCESS_AUD),
+    cfEmails: list(env.ADMIN_CF_ACCESS_EMAILS).map(e => e.toLowerCase()),
     enabled: env.ADMIN_ENABLED === 'true' || env.ADMIN_ENABLED === '1',
     port: parseInt(env.ADMIN_PORT || '2526', 10),
     listenAddress: env.ADMIN_LISTEN_ADDRESS || '0.0.0.0',

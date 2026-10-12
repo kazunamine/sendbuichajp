@@ -316,6 +316,19 @@ ${passkeys || '<tr><td colspan="3">登録されたパスキーはありません
   });
 }
 
+// Cloudflare Access モード用: ヘッダに検証済みメールと Access 側ログアウトを表示する。
+// email / logoutUrl は必ず esc() を通す。
+function injectAccessBanner(html, { email, logoutUrl }) {
+  const banner = `<p class="access">Cloudflare: ${esc(email)} <a href="${esc(
+    logoutUrl
+  )}">Cloudflare からログアウト</a></p>`;
+  const i = html.indexOf('</h1>');
+  if (i === -1) {
+    return html;
+  }
+  return html.slice(0, i + 5) + banner + html.slice(i + 5);
+}
+
 function simplePage(title, text) {
   return layout({ title, body: `<p>${esc(text)}</p>` });
 }
@@ -325,6 +338,7 @@ module.exports = {
   formatBytes,
   formatTime,
   layout,
+  injectAccessBanner,
   setupPage,
   setupTotpPage,
   loginPage,

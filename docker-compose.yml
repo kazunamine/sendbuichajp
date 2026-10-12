@@ -47,6 +47,14 @@ services:
       - ADMIN_ENABLED=true
       - ADMIN_PORT=2526
       - ADMIN_LISTEN_ADDRESS=0.0.0.0
+      # lan（既定）または cloudflare-access（LAN の IP を信頼せず Access の JWT を毎回検証）
+      - ADMIN_MODE=lan
+      # cloudflare-access にする場合は以下 3 つが必須（ADMIN_TRUSTED_PROXIES も必須。ADMIN_ALLOWED_CIDRS は使われない）
+      # Tunnel の public hostname -> http://192.168.1.150:2526 / AUD は Access アプリの Overview > Application Audience (AUD) Tag
+      # Access ポリシー: Google ログイン + 許可メール + 自宅 IP
+      # - ADMIN_CF_ACCESS_TEAM_DOMAIN=buicha.cloudflareaccess.com
+      # - ADMIN_CF_ACCESS_AUD=<AUD タグ（カンマ区切りで複数可）>
+      # - ADMIN_CF_ACCESS_EMAILS=you@example.com
       - ADMIN_ALLOWED_CIDRS=127.0.0.1/32,::1/128,192.168.0.0/16,10.0.0.0/8
       - ADMIN_TRUSTED_PROXIES=192.168.1.100
       - ADMIN_RP_ID=send-admin.buicha.jp

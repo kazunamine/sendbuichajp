@@ -54,8 +54,12 @@
 | `ADMIN_ENABLED` | `false` | 管理画面を有効化 |
 | `ADMIN_PORT` | `2526` | 管理画面のポート |
 | `ADMIN_LISTEN_ADDRESS` | `0.0.0.0` | 待ち受けアドレス |
-| `ADMIN_ALLOWED_CIDRS` | `127.0.0.1/32,::1/128,192.168.0.0/16,10.0.0.0/8` | 接続を許可する CIDR |
-| `ADMIN_TRUSTED_PROXIES` | (空) | X-Forwarded-For を信用するプロキシ IP |
+| `ADMIN_MODE` | `lan` | `lan`（IP 制限のみ）または `cloudflare-access`（Cloudflare Access の JWT を毎回検証） |
+| `ADMIN_ALLOWED_CIDRS` | `127.0.0.1/32,::1/128,192.168.0.0/16,10.0.0.0/8` | 接続を許可する CIDR（`lan` モードのみ。`cloudflare-access` では使いません） |
+| `ADMIN_TRUSTED_PROXIES` | (空) | X-Forwarded-For を信用するプロキシ IP（`cloudflare-access` では接続を許可する唯一の接続元で必須） |
+| `ADMIN_CF_ACCESS_TEAM_DOMAIN` | (空) | Access のチームドメイン 例 `buicha.cloudflareaccess.com`（`https://` 有無どちらでも可）。`cloudflare-access` で必須 |
+| `ADMIN_CF_ACCESS_AUD` | (空) | Access アプリの AUD タグ（カンマ区切りで複数可）。`cloudflare-access` で必須 |
+| `ADMIN_CF_ACCESS_EMAILS` | (空) | 許可するメールアドレス（カンマ区切り、大文字小文字無視）。`cloudflare-access` で必須 |
 | `ADMIN_RP_ID` | `send-admin.buicha.jp` | パスキーの RP ID |
 | `ADMIN_ORIGIN` | `https://send-admin.buicha.jp` | 管理画面のオリジン |
 | `ADMIN_SESSION_SECRET` | (必須) | セッション署名用の秘密値。未設定だと管理画面は起動しません |
@@ -82,6 +86,29 @@ GitHub Actions が `ghcr.io/kazunamine/sendbuichajp` にイメージを公開し
 - パスキー (WebAuthn) は安全なコンテキストが必要なため、HTTPS 必須です。`ADMIN_RP_ID` と `ADMIN_ORIGIN` はそのホスト名に合わせてください。
 - インターネット公開側のリバースプロキシに 2526 を出さないでください。
 - プロキシ経由の場合は `ADMIN_TRUSTED_PROXIES` にそのプロキシの IP のみを指定してください。
+
+## Cloudflare Access モード（ゼロトラスト）
+
+`ADMIN_MODE=cloudflare-access` では、LAN の IP を信頼せず、Cloudflare Access が発行する JWT（`Cf-Access-Jwt-Assertion` ヘッダ）を毎リクエスト検証します。
+
+構成: ブラウザ → Cloudflare Access（Google ログイン＋メール＋自宅 IP）→ Cloudflare Tunnel（nas の cloudflared）→ `192.168.1.150:2526`
+
+動作:
+
+1. 接続元が `ADMIN_TRUSTED_PROXIES`（cloudflared のホスト IP。例 `192.168.1.100`）以外なら 403。LAN からの直アクセスも拒否します。`ADMIN_ALLOWED_CIDRS` は使いません（IP 条件は Access 側で行います）。
+2. `Cf-Access-Jwt-Assertion` ヘッダのみを信頼します（`CF_Authorization` Cookie は使いません）。無ければ 403。
+3. RS256 のみ許可。`https://<チームドメイン>/cdn-cgi/access/certs` の公開鍵で署名を検証し（キャッシュ 10 分、未知の kid のときのみ再取得で最短 30 秒間隔、取得失敗は拒否）、`iss` / `aud` / `exp` / `nbf` / `iat` / `email` を検証します。
+4. 検証後も、既存のアプリ認証（パスワード＋TOTP / パスキー）を引き続き要求します（二重の認証）。
+5. レート制限・ログ用のクライアント IP は `Cf-Connecting-IP`（信頼プロキシ経由のみ）を使います。
+6. 管理画面ヘッダに `Cloudflare: <メール>` と、Access 側のログアウト（同一ホストの `/cdn-cgi/access/logout`）へのリンクを表示します。
+7. `TEAM_DOMAIN` / `AUD` / `EMAILS` / `TRUSTED_PROXIES` のいずれかが空だと管理画面は起動しません。
+
+Cloudflare 側の設定:
+
+- Zero Trust > Networks > Tunnels で、cloudflared の Public hostname（例 `send-admin.buicha.jp`）を `http://192.168.1.150:2526` に向ける。
+- Zero Trust > Access > Applications で上記ホスト名の Self-hosted アプリを作成し、AUD タグ（アプリの設定画面の Overview > Application Audience (AUD) Tag）を `ADMIN_CF_ACCESS_AUD` に設定する。チームドメインは Zero Trust の Settings > Custom Pages 等に表示される `<team>.cloudflareaccess.com`。
+- Access ポリシー（Allow）: 認証方法は Google ログイン、Include に許可するメール、Require に自宅の IP（Selectors > IP ranges）を設定する。
+- `ADMIN_ORIGIN` / `ADMIN_RP_ID` は公開ホスト名に合わせる（パスキーと CSRF 対策のため）。
 
 ## 運用上の注意
 
