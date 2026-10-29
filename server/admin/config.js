@@ -12,7 +12,7 @@ function list(value) {
 
 // ADMIN_* を process.env から直接読む（server/config.js は使わない）
 function load(env = process.env) {
-  const origin = (env.ADMIN_ORIGIN || 'https://send-admin.buicha.jp').replace(
+  const origin = (env.ADMIN_ORIGIN || 'https://send.admin.buicha.jp').replace(
     /\/+$/,
     ''
   );
@@ -34,7 +34,7 @@ function load(env = process.env) {
         : env.ADMIN_ALLOWED_CIDRS
     ),
     trustedProxies: list(env.ADMIN_TRUSTED_PROXIES),
-    rpID: env.ADMIN_RP_ID || 'send-admin.buicha.jp',
+    rpID: env.ADMIN_RP_ID || 'send.admin.buicha.jp',
     origin,
     sessionSecret: env.ADMIN_SESSION_SECRET || '',
     setupToken: env.ADMIN_SETUP_TOKEN || '',

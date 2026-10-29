@@ -74,7 +74,8 @@ function createApp(cfg, deps = {}) {
   // 2. セキュリティヘッダ
   app.use(helmet());
   app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: false }));
-  app.use(helmet.referrerPolicy({ policy: 'no-referrer' }));
+  // no-referrer だとブラウザが同一オリジンの POST でも Origin: null を送り、下の CSRF 検査で 403 になる
+  app.use(helmet.referrerPolicy({ policy: 'same-origin' }));
   app.use(
     helmet.contentSecurityPolicy({
       directives: {
