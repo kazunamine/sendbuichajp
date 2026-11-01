@@ -59,7 +59,7 @@
     "cache": true
   },
   "engines": {
-    "node": "^16.13.0"
+    "node": ">=22.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.17.9",
@@ -131,7 +131,6 @@
     "webpack-unassert-loader": "^1.2.0"
   },
   "dependencies": {
-    "@dannycoates/express-ws": "^5.0.3",
     "@fluent/bundle": "^0.17.1",
     "@fluent/langneg": "^0.6.2",
     "@google-cloud/storage": "^6.2.3",
@@ -154,7 +153,8 @@
     "redis": "^3.1.1",
     "redis-mock": "^0.47.0",
     "selenium-standalone": "^6.24.0",
-    "ua-parser-js": "^0.7.31"
+    "ua-parser-js": "^0.7.31",
+    "ws": "^7.5.10"
   },
   "availableLanguages": [
     "en-US",

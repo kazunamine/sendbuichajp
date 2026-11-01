@@ -5,7 +5,7 @@
 ##
 
 # Build project
-FROM node:16.13-alpine3.13 AS builder
+FROM node:22-alpine AS builder
 
 RUN set -x \
   # Change node uid/gid
@@ -34,7 +34,7 @@ RUN set -x \
     && npm run build
 
 # Main image
-FROM node:16.13-alpine3.13
+FROM node:22-alpine
 
 RUN set -x \
   # Change node uid/gid
