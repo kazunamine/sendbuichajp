@@ -9,6 +9,19 @@ const express = require('express');
 const devRoutes = require('../../server/bin/test');
 const app = express();
 
+// puppeteer 2.1.1 の Chromium が無い Mac では、入っている Chrome を使う。
+// CI（process.env.CI あり）や PUPPETEER_EXECUTABLE_PATH 指定時は何もしない。
+const macChrome =
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+if (
+  !process.env.PUPPETEER_EXECUTABLE_PATH &&
+  !process.env.CI &&
+  process.platform === 'darwin' &&
+  fs.existsSync(macChrome)
+) {
+  process.env.PUPPETEER_EXECUTABLE_PATH = macChrome;
+}
+
 const wpm = middleware(webpack(config(null, { mode: 'development' })), {
   logLevel: 'silent'
 });

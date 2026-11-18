@@ -26,6 +26,7 @@ describe('API', function() {
         DEFAULTS.EXPIRE_SECONDS,
         1,
         null,
+        plaintext.size,
         p
       );
 
@@ -46,7 +47,9 @@ describe('API', function() {
         meta,
         verifierB64,
         DEFAULTS.EXPIRE_SECONDS,
+        1,
         null,
+        plaintext.size,
         p
       );
 

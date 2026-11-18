@@ -18,9 +18,9 @@ const buffer = Buffer.from(str);
 const params = {
   version: 'aes128gcm',
   rs: rs,
-  salt: testSalt,
+  salt: Buffer.from(b64ToArray(testSalt)),
   keyid: '',
-  key: keystr
+  key: Buffer.from(b64ToArray(keystr))
 };
 
 const encrypted = ece.encrypt(buffer, params);
