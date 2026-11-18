@@ -38,7 +38,7 @@
   "husky": {
     "hooks": {
       "pre-commit": "gitleaks git --pre-commit --staged --redact --no-banner && lint-staged && npm run verify",
-      "pre-push": "npm test"
+      "pre-push": "npm run verify"
     }
   },
   "lint-staged": {
