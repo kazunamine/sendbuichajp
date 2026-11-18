@@ -1,0 +1,15 @@
+# gitleaks の誤検知の除外（fingerprint = commit:file:rule:line）。
+# 2026-11-18 に 1 件ずつ文脈を確認した。どれも認証情報ではない。
+
+# 圧縮済みの外部ライブラリ（WebCrypto の polyfill）。「KEY=」に続くエラー文言
+# （"CryptoKey is empty" など）が generic-api-key に当たっただけ。ファイルは現在の木には無い。
+cd7da20024162fd404eddedc3d5cd9ff488e6f9e:assets/cryptofill.js:generic-api-key:1
+7a237b9b687bf2bfdf7db26e0199f3be3ab42409:assets/cryptofill.js:generic-api-key:1
+e3556aa7e10d79a6620136ec514f5af968c3f439:assets/cryptofill.js:generic-api-key:1
+cc9b622bde4a06739856f46d81c587140c7cd358:assets/cryptofill.js:generic-api-key:1
+f9002df490999527579957b7d1cc4cc2d0053c44:assets/cryptofill.js:generic-api-key:7
+fb41a40128c0ade9bbbec382a226a203b3c252a7:public/cryptofill.js:generic-api-key:1
+
+# 単体テスト用の鍵。RFC 8188 3.1 節に載っている公開のサンプル鍵で、
+# http_ece の実装と突き合わせるためのテストベクトル。
+a8fef2c0a58796e1b37e3175b6b264c5f64e67ec:test/frontend/tests/streaming-tests.js:generic-api-key:15

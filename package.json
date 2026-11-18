@@ -13,6 +13,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "build": "npm run clean && webpack",
+    "verify": "npm run lint && npm run test:backend && echo 'verify: OK'",
     "lint": "npm-run-all lint:*",
     "lint:css": "stylelint app/*.css app/**/*.css",
     "lint:js": "eslint .",
@@ -36,7 +37,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "lint-staged",
+      "pre-commit": "gitleaks git --pre-commit --staged --redact --no-banner && lint-staged && npm run verify",
       "pre-push": "npm test"
     }
   },
