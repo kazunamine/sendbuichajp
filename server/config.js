@@ -390,6 +390,11 @@ const conf = convict({
       default: '',
       env: 'UI_CUSTOM_ASSETS_ICON'
     },
+    icon_dark: {
+      format: String,
+      default: '',
+      env: 'UI_CUSTOM_ASSETS_ICON_DARK'
+    },
     safari_pinned_tab: {
       format: String,
       default: '',

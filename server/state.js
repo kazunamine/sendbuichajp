@@ -44,7 +44,8 @@ module.exports = async function(req) {
     apple_touch_icon: assets.get('apple-touch-icon.png'),
     favicon_16px: assets.get('favicon-16x16.png'),
     favicon_32px: assets.get('favicon-32x32.png'),
-    icon: assets.get('icon.svg'),
+    icon: assets.get('icon.png'),
+    icon_dark: assets.get('icon-dark.png'),
     safari_pinned_tab: assets.get('safari-pinned-tab.svg'),
     facebook: baseUrl + '/' + assets.get('send-fb.jpg'),
     twitter: baseUrl + '/' + assets.get('send-twitter.jpg'),
@@ -55,6 +56,12 @@ module.exports = async function(req) {
     if (config.ui_custom_assets[index] !== '')
       uiAssets[index] = config.ui_custom_assets[index];
   });
+  // icon を差し替えているときは、Dark 版を使わない（ヘッダーは icon_dark が空なら出さない）
+  if (
+    config.ui_custom_assets.icon !== '' &&
+    config.ui_custom_assets.icon_dark === ''
+  )
+    uiAssets.icon_dark = '';
   return {
     archive: {
       numFiles: 0
